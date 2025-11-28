@@ -26,18 +26,18 @@ const run = async () => {
     await client.connect();
 
     const db = client.db("zap_shift_db");
-    const parcelCollenction = db.collection("parcels");
+    const parcelCollection = db.collection("parcels");
 
     //parcel API
     app.get("/parcels", async (req, res) => {
-      const cursor = parcelCollenction.find();
+      const cursor = parcelCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     });
 
     app.post("/parcels", async (req, res) => {
       const parcel = req.body;
-      const result = await parcelCollenction.insertOne(parcel);
+      const result = await parcelCollection.insertOne(parcel);
       res.send(result);
     });
 
