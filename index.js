@@ -30,7 +30,14 @@ const run = async () => {
 
     //parcel API
     app.get("/parcels", async (req, res) => {
-      const cursor = parcelCollenction.find();
+      const query = {};
+      const { email } = req.query;
+
+      if (email) {
+        query.sendarEmail = email;
+      }
+
+      const cursor = parcelCollenction.find(query);
       const result = await cursor.toArray();
       res.send(result);
     });
