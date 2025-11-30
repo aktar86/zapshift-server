@@ -1,9 +1,9 @@
 const express = require("express");
 const app = express();
-
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
+const stripe = require("stripe")(process.env.STRIPE_SECRET);
 const port = process.env.PORT || 3000;
 
 // middleware
@@ -61,6 +61,65 @@ const run = async () => {
       const query = { _id: new ObjectId(id) };
       const result = await parcelCollection.deleteOne(query);
       res.send(result);
+    });
+
+    //stripe payment api
+    app.post("/payment-checkout-session", async (req, res) => {
+      const paymentInfo = req.body;
+      const amount = parseInt(paymentInfo.cost) * 100;
+      const session = await stripe.checkout.sessions.create({
+        line_items: [
+          {
+            price_data: {
+              currency: "USD",
+              unit_amount: amount,
+              product_data: {
+                name: `Please Pay for : ${paymentInfo.parcelName}`,
+              },
+            },
+            quantity: 1,
+          },
+        ],
+
+        mode: "payment",
+        customer_email: paymentInfo.sendarEmail,
+        metadata: {
+          parcelId: paymentInfo.parcelId,
+        },
+        success_url: `${process.env.SITE_DOMAIN}/dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.SITE_DOMAIN}/dashboard/payment-cancelled`,
+      });
+
+      res.send({ url: session.url });
+    });
+
+    //old
+    app.post("/create-checkout-session", async (req, res) => {
+      const paymentInfo = req.body;
+      const amount = parseInt(paymentInfo.cost) * 100;
+      const session = await stripe.checkout.sessions.create({
+        line_items: [
+          {
+            price_data: {
+              currency: "USD",
+              unit_amount: amount,
+              product_data: {
+                name: paymentInfo.parcelName,
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        customer_email: paymentInfo.sendarEmail,
+        mode: "payment",
+        metadata: {
+          parcelId: paymentInfo.parcelId,
+        },
+        success_url: `${process.env.SITE_DOMAIN}/dashboard/payment-success`,
+        cancel_url: `${process.env.SITE_DOMAIN}/dashboard/payment-cancelled`,
+      });
+      console.log(session);
+      res.send({ url: session.url });
     });
 
     await client.db("admin").command({ ping: 1 });
