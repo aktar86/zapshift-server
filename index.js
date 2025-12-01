@@ -149,6 +149,19 @@ const run = async () => {
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       console.log(" session retrive ", session);
 
+      const transactionId = session.payment_intent;
+      const query = { transactionId: transactionId };
+      console.log(query);
+      const paymentExists = await paymentCollection.findOne(query);
+      console.log("paymentExists", paymentExists);
+      if (paymentExists) {
+        return res.send({
+          message: "Payment already exists",
+          transactionId,
+          trackingId: paymentExists.trackingId,
+        });
+      }
+
       //tracking id
       const trackingId = generateTrackingId();
 
@@ -174,6 +187,7 @@ const run = async () => {
           transactionId: transactionId,
           paymentStatus: session.payment_status,
           paidAt: new Date(),
+          trackingId: trackingId,
         };
 
         if (session.payment_status === "paid") {
