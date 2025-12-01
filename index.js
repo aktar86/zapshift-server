@@ -63,6 +63,7 @@ const run = async () => {
       res.send(result);
     });
 
+    //----------------------------------------------
     //stripe payment api
     app.post("/payment-checkout-session", async (req, res) => {
       const paymentInfo = req.body;
@@ -120,6 +121,27 @@ const run = async () => {
       });
       console.log(session);
       res.send({ url: session.url });
+    });
+
+    //update payment and verified api
+    app.patch("/payment-success", async (req, res) => {
+      const sessionId = req.query.session_id;
+
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      console.log(" session retrive ", session);
+      if (session.payment_status === "paid") {
+        const id = session.metadata.parcelId;
+        const query = { _id: new ObjectId(id) };
+        const update = {
+          $set: {
+            deliveryStatus: "Paid",
+          },
+        };
+
+        const result = await parcelCollection.updateOne(query, update);
+        res.send(result);
+      }
+      res.send({ success: false });
     });
 
     await client.db("admin").command({ ping: 1 });
