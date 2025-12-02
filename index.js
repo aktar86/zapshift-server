@@ -6,6 +6,14 @@ require("dotenv").config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
 const port = process.env.PORT || 3000;
 
+const admin = require("firebase-admin");
+
+const serviceAccount = require("./zap-shift-adminsdk-.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
 //----------------Tracking Id
 const crypto = require("crypto");
 
@@ -26,6 +34,25 @@ function generateTrackingId() {
 // middleware
 app.use(cors());
 app.use(express.json());
+
+const verifyFireBaseToken = async (req, res, next) => {
+  console.log("In the middleware:", req.headers.authorization);
+
+  const token = req.headers.authorization;
+  if (!token) {
+    return res.status(401).send({ message: "unauthorised access" });
+  }
+
+  try {
+    const idToken = token.split(" ")[1];
+    const decode = await admin.auth().verifyIdToken(idToken);
+    console.log("decoded:", decode);
+    req.decoded_email = decode.email;
+    next();
+  } catch (err) {
+    res.status(401).send({ message: "unauthorised access" });
+  }
+};
 
 const uri = `${process.env.ZS_URI}`;
 
@@ -201,6 +228,25 @@ const run = async () => {
           });
         }
       }
+    });
+
+    //payment related api's
+    app.get("/payments", verifyFireBaseToken, async (req, res) => {
+      const email = req.query.email;
+      const query = {};
+
+      if (email) {
+        query.customerEmail = email;
+
+        //check email address
+        if (email !== req.decoded_email) {
+          return res.status(403).send({ message: "forbidded access" });
+        }
+      }
+
+      const cursor = paymentCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
     });
 
     await client.db("admin").command({ ping: 1 });
