@@ -35,6 +35,7 @@ function generateTrackingId() {
 app.use(cors());
 app.use(express.json());
 
+//firebase token verify middleware
 const verifyFireBaseToken = async (req, res, next) => {
   console.log("In the middleware:", req.headers.authorization);
 
@@ -70,8 +71,19 @@ const run = async () => {
     await client.connect();
 
     const db = client.db("zap_shift_db");
+    const usersCollection = db.collection("users");
     const parcelCollection = db.collection("parcels");
     const paymentCollection = db.collection("payments");
+
+    //users related api
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      user.role = "user";
+      user.createdAt = new Date();
+
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
 
     //parcel API
     app.get("/parcels", async (req, res) => {
@@ -244,7 +256,7 @@ const run = async () => {
         }
       }
 
-      const cursor = paymentCollection.find(query);
+      const cursor = paymentCollection.find(query).sort({ paidAt: -1 });
       const result = await cursor.toArray();
       res.send(result);
     });
