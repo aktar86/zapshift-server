@@ -77,6 +77,35 @@ const run = async () => {
     const riderCollection = db.collection("riders");
 
     //users related api
+    app.get("/users", verifyFireBaseToken, async (req, res) => {
+      const cursor = usersCollection.find().sort({ createdAt: 1 });
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    app.get("/users/:id", async (req, res) => {});
+
+    app.get("/users/:email/role", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      res.send({ role: user?.role || "user" });
+    });
+
+    app.patch("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const roleInfo = req.body;
+      const query = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          role: roleInfo.role,
+        },
+      };
+
+      const result = await usersCollection.updateOne(query, updatedDoc);
+      res.send(result);
+    });
+
     app.post("/users", async (req, res) => {
       const user = req.body;
       user.role = "user";
@@ -115,6 +144,22 @@ const run = async () => {
       };
 
       const result = await riderCollection.updateOne(query, updatedDoc);
+
+      if (status === "approved") {
+        const email = req.body.email;
+        const userQuery = { email };
+        const updateUser = {
+          $set: {
+            role: "rider",
+          },
+        };
+
+        const userResult = await usersCollection.updateOne(
+          userQuery,
+          updateUser
+        );
+        res.send(userResult);
+      }
       res.send(result);
     });
 
