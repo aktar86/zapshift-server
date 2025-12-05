@@ -118,12 +118,12 @@ const run = async () => {
       res.send(result);
     });
 
-    // app.delete("/riders/:id", async (req, res) => {
-    //   const id = req.params.id;
-    //   const query = { _id: new ObjectId(id) };
-    //   const result = await riderCollection.deleteOne(query);
-    //   res.send(result);
-    // });
+    app.delete("/riders/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await riderCollection.deleteOne(query);
+      res.send(result);
+    });
 
     app.post("/riders", async (req, res) => {
       const rider = req.body;
