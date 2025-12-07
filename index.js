@@ -92,7 +92,21 @@ const run = async () => {
 
     //users related api
     app.get("/users", verifyFireBaseToken, async (req, res) => {
-      const cursor = usersCollection.find().sort({ createdAt: 1 });
+      const searchText = req.query.searchText;
+      const query = {};
+      if (searchText) {
+        // query.displayName = { $regex: searchText, $options: "i" };
+
+        query.$or = [
+          { displayName: { $regex: searchText, $options: "i" } },
+          { email: { $regex: searchText, $options: "i" } },
+        ];
+      }
+
+      const cursor = usersCollection
+        .find(query)
+        .sort({ createdAt: 1 })
+        .limit(5);
       const result = await cursor.toArray();
       res.send(result);
     });
@@ -163,6 +177,7 @@ const run = async () => {
         const updatedDoc = {
           $set: {
             status: status,
+            workStatus: "available",
           },
         };
 
@@ -212,10 +227,14 @@ const run = async () => {
     //parcel API
     app.get("/parcels", async (req, res) => {
       const query = {};
-      const { email } = req.query;
+      const { email, deliveryStatus } = req.query;
 
       if (email) {
         query.sendarEmail = email;
+      }
+
+      if (deliveryStatus) {
+        query.deliveryStatus = deliveryStatus;
       }
 
       const cursor = parcelCollection.find(query).sort({ createdAt: -1 });
@@ -333,7 +352,8 @@ const run = async () => {
         const query = { _id: new ObjectId(id) };
         const update = {
           $set: {
-            deliveryStatus: "Paid",
+            paymentStatus: "Paid",
+            deliveryStatus: "pending-picup",
             trackingId: trackingId,
           },
         };
