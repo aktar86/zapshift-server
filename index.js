@@ -113,6 +113,7 @@ const run = async () => {
 
     app.get("/users/:id", async (req, res) => {});
 
+    //useRole hook api
     app.get("/users/:email/role", async (req, res) => {
       const email = req.params.email;
       const query = { email };
